@@ -28,24 +28,6 @@ export const generatePresentationDefinition = (
     );
 
   var pd: PresentationDefinition = {
-    format: {
-      ldp_vc: {
-        proof_type: [
-          "JsonWebSignature2020",
-          "Ed25519Signature2018",
-          "EcdsaSecp256k1Signature2019",
-          "RsaSignature2018",
-        ],
-      },
-      ldp_vp: {
-        proof_type: [
-          "JsonWebSignature2020",
-          "Ed25519Signature2018",
-          "EcdsaSecp256k1Signature2019",
-          "RsaSignature2018",
-        ],
-      },
-    },
     id: crypto.randomUUID(),
     name: "SSI-to-OIDC Bridge",
     purpose: "Sign-in",
@@ -64,20 +46,27 @@ export const generatePresentationDefinition = (
     return pd;
   }
 
-  for (let expectation of policy) {
+  for (const expectation of policy) {
     if (expectation.patterns.length > 1) {
-      let req = {
+      const req = {
         name: "Group " + expectation.credentialId,
         rule: "pick",
         count: 1,
         from: "group_" + expectation.credentialId,
       };
-      pd.submission_requirements!.push(req);
+      let { submission_requirements } = pd;
+      if (!submission_requirements) {
+        submission_requirements = [];
+      }
+      pd["submission_requirements"] = submission_requirements.concat(req);
     }
 
-    for (let pattern of expectation.patterns) {
-      let descr: InputDescriptor = {
-        id: expectation.credentialId,
+    for (const pattern of expectation.patterns) {
+      const descr: InputDescriptor = {
+        id:
+          expectation.credentialId +
+          "pattern" +
+          expectation.patterns.indexOf(pattern),
         purpose: "Sign-in",
         name: "Input descriptor for " + expectation.credentialId,
         constraints: {},
@@ -87,7 +76,7 @@ export const generatePresentationDefinition = (
         descr.group = ["group_" + expectation.credentialId];
       }
 
-      let fields = pattern.claims
+      const fields = pattern.claims
         .filter((claim) =>
           Object.hasOwn(claim, "required") ? claim.required : true,
         )
